@@ -32,16 +32,29 @@ impl Terminal {
     }
 
     pub fn clear_screen() -> Result<(), Error> {
+        log::info!("Clearing screen");
         queue!(stdout(), Clear(ClearType::All))?;
         Ok(())
     }
 
     pub fn clear_current_line() -> Result<(), Error> {
+        log::info!("Clearing current line");
         queue!(stdout(), Clear(ClearType::CurrentLine))?;
         Ok(())
     }
 
-    pub fn clear_up_to_current_line() -> Result<(), Error> {
+    pub fn clear_up() -> Result<(), Error> {
+        queue!(stdout(), Clear(ClearType::FromCursorUp))?;
+        Ok(())
+    }
+
+    pub fn clear_down() -> Result<(), Error> {
+        log::info!("Clearing down");
+        queue!(stdout(), Clear(ClearType::FromCursorDown))?;
+        Ok(())
+    }
+
+    pub fn clear_right() -> Result<(), Error> {
         queue!(stdout(), Clear(ClearType::UntilNewLine))?;
         Ok(())
     }
@@ -76,3 +89,4 @@ impl Terminal {
         Ok(())
     }
 }
+

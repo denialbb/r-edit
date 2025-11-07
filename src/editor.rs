@@ -31,8 +31,9 @@ impl Editor {
 
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
-        self.welcome_message();
+        self.welcome_message()?;
         read()?;
+        Terminal::clear_screen()?;
         loop {
             self.refresh_screen()?;
             if self.should_quit {
@@ -58,6 +59,10 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
+                    if self.cursor_position.x == 0 {
+                        info!("Clearing current line");
+                        Terminal::clear_current_line().unwrap();
+                    }
                     Terminal::print(&c.to_string()).unwrap();
                     self.cursor_position.x += 1;
                     info!("Printed character: {}", c);
@@ -68,7 +73,6 @@ impl Editor {
                     self.cursor_position.y += 1;
                     self.cursor_position.x = 0;
                     info!("Printed newline");
-                    Terminal::clear_current_line().unwrap();
                     self.refresh_screen().unwrap();
                 }
                 Backspace => {
@@ -96,7 +100,7 @@ impl Editor {
 
     fn refresh_screen(&mut self) -> Result<(), Error> {
         info!("Refreshing screen");
-        Terminal::hide_cursor();
+        Terminal::hide_cursor()?;
         if self.should_quit {
             Terminal::clear_screen()?;
             Terminal::print("Goodbye.\r\n")?;
@@ -104,30 +108,34 @@ impl Editor {
         } else {
             self.draw_rows()?;
             Terminal::move_cursor_to(self.cursor_position)?;
-            info!("Drew rows and moved cursor to origin");
         }
-        Terminal::show_cursor();
+        Terminal::show_cursor()?;
         Terminal::execute()?;
-        info!("Screen refreshed");
         Ok(())
     }
 
     fn draw_rows(&mut self) -> Result<(), Error> {
-        info!("Drawing rows");
         let Size { height, .. } = Terminal::size()?;
 
-        for current_line in self.cursor_position.y + 1..height {
-            // Terminal::clear_current_line()?;
-            Terminal::print("~")?;
-            if current_line < height - 1 {
-                Terminal::print("\r\n")?;
+        if self.cursor_position.x == 0 {
+            info!("Clearing current line");
+            Terminal::clear_current_line()?;
+            if self.cursor_position.y == 0 {
+                info!("Drawing rows");
+                Terminal::clear_down()?;
+                for current_line in self.cursor_position.y + 1..height {
+                    Terminal::print("~")?;
+                    if current_line < height - 1 {
+                        Terminal::print("\r\n")?;
+                    }
+                }
             }
         }
-        info!("Rows drawn");
+
         Ok(())
     }
 
-    fn welcome_message(&self) -> Result<(), Error> {
+    fn welcome_message(&mut self) -> Result<(), Error> {
         info!("Displaying welcome message");
         let Size { width, height } = Terminal::size()?;
         Terminal::hide_cursor()?;
@@ -146,6 +154,8 @@ impl Editor {
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
 
+        Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
+        self.cursor_position = Position { x: 0, y: 0 };
         Terminal::show_cursor()?;
         Terminal::execute()?;
         Ok(())

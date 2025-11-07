@@ -18,7 +18,7 @@ impl Editor {
         loop {
             match read() {
                 Ok(Key(event)) => {
-                    println!("Event: {:?}\r", event);
+                    println!("Event: {event:?}\r");
 
                     match event.code {
                         Char(c) => {
@@ -29,7 +29,7 @@ impl Editor {
                         _ => (),
                     }
                 }
-                Err(e) => println!("Error: {}", e),
+                Err(e) => println!("Error: {e}"),
                 _ => (),
             }
         }

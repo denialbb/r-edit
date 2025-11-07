@@ -1,0 +1,17 @@
+SystemTime { tv_sec: 1762515216, tv_nsec: 299028868 } [INFO] Editor is running
+SystemTime { tv_sec: 1762515216, tv_nsec: 299079309 } [INFO] Starting read-evaluate-print loop
+SystemTime { tv_sec: 1762515216, tv_nsec: 299094909 } [INFO] Displaying welcome message
+SystemTime { tv_sec: 1762515216, tv_nsec: 299141899 } [INFO] Welcome message displayed
+SystemTime { tv_sec: 1762515216, tv_nsec: 299151869 } [INFO] Refreshing screen
+SystemTime { tv_sec: 1762515216, tv_nsec: 299159519 } [INFO] Drawing rows
+SystemTime { tv_sec: 1762515216, tv_nsec: 299256649 } [INFO] Rows drawn
+SystemTime { tv_sec: 1762515216, tv_nsec: 299267599 } [INFO] Drew rows and moved cursor to origin
+SystemTime { tv_sec: 1762515216, tv_nsec: 299278539 } [INFO] Screen refreshed
+SystemTime { tv_sec: 1762515218, tv_nsec: 196466779 } [INFO] Evaluating event: Key(KeyEvent { code: Char('q'), modifiers: KeyModifiers(CONTROL), kind: Press, state: KeyEventState(0x0) })
+SystemTime { tv_sec: 1762515218, tv_nsec: 196501699 } [INFO] Ctrl-Q pressed, setting should_quit to true
+SystemTime { tv_sec: 1762515218, tv_nsec: 196508519 } [INFO] Refreshing screen
+SystemTime { tv_sec: 1762515218, tv_nsec: 196519549 } [INFO] Displayed goodbye message
+SystemTime { tv_sec: 1762515218, tv_nsec: 196529289 } [INFO] Screen refreshed
+SystemTime { tv_sec: 1762515218, tv_nsec: 196535349 } [INFO] Quitting editor
+SystemTime { tv_sec: 1762515218, tv_nsec: 196555879 } [INFO] Exiting read-evaluate-print loop
+SystemTime { tv_sec: 1762515218, tv_nsec: 196570979 } [INFO] Editor finished running

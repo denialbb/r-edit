@@ -1,8 +1,8 @@
-use log::{self, LevelFilter};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
+use log::{self, LevelFilter};
 use std::sync::Mutex;
-use std::time::SystemTime;
+use chrono::Local;
 
 pub struct Config {
     pub level_filter: LevelFilter,
@@ -19,10 +19,7 @@ impl CustomLogger {
             .create(true)
             .append(true)
             .open(log_file_path)?;
-        Ok(CustomLogger {
-            config,
-            log_file: Mutex::new(log_file),
-        })
+        Ok(CustomLogger { config, log_file: Mutex::new(log_file) })
     }
 }
 
@@ -36,9 +33,14 @@ impl log::Log for CustomLogger {
             return;
         }
 
-        let time = format!("{:?}", SystemTime::now());
+        let time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        let log_entry = format!("{} [{}] {}\n", time, record.level(), record.args());
+        let log_entry = format!(
+            "{} [{}] {}\n",
+            time,
+            record.level(),
+            record.args()
+        );
 
         let mut file = self.log_file.lock().unwrap();
         if let Err(e) = write!(file, "{}", log_entry) {

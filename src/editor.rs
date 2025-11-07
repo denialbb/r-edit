@@ -57,10 +57,12 @@ impl Editor {
                 }
                 Char(c) => {
                     Terminal::print(&c.to_string()).unwrap();
+                    Terminal::execute().unwrap();
                     info!("Printed character: {}", c);
                 },
                 Enter => {
                     Terminal::print("\r\n").unwrap();
+                    Terminal::execute().unwrap();
                     info!("Printed newline");
                 },
                 _ => info!("Unhandled key event: {:?}", code),

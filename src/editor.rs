@@ -1,7 +1,7 @@
 pub mod logger;
 mod terminal;
 
-use crossterm::event::KeyCode::Char;
+use crossterm::event::KeyCode::{Char, Enter};
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::info;
 use std::io::Error;
@@ -56,6 +56,10 @@ impl Editor {
                 Char(c) => {
                     Terminal::print(&c.to_string()).unwrap();
                     info!("Printed character: {}", c);
+                },
+                Enter => {
+                    Terminal::print("\r\n").unwrap();
+                    info!("Printed newline");
                 },
                 _ => info!("Unhandled key event: {:?}", code),
             }

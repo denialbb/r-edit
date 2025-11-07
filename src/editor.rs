@@ -1,21 +1,31 @@
 use crate::terminal::Terminal;
-use crossterm::event::{Event, Event::Key, KeyCode::Char, KeyEvent, KeyModifiers, read};
+use crossterm::event::KeyCode::{Char, Enter};
+use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
+use std::io::{self, Write};
 
 pub struct Editor {
     should_quit: bool,
+    terminal: Terminal,
 }
 
 impl Editor {
     pub fn default() -> Self {
-        Editor { should_quit: false }
+        Editor {
+            should_quit: false,
+
+            terminal: Terminal::default(),
+        }
     }
 
     pub fn new() -> Editor {
-        Editor { should_quit: false }
+        Editor {
+            should_quit: false,
+            terminal: Terminal::default(),
+        }
     }
 
     pub fn run(&mut self) {
-        Terminal::initialize().unwrap();
+        self.terminal.initialize().unwrap();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
@@ -23,7 +33,6 @@ impl Editor {
 
     pub fn repl(&mut self) -> Result<(), std::io::Error> {
         loop {
-            Terminal::draw_rows()?;
             let event = read()?;
             self.evaluate_event(event);
             self.refresh_screen()?;
@@ -41,17 +50,21 @@ impl Editor {
         {
             match (code, modifiers) {
                 (Char('q'), KeyModifiers::CONTROL) => self.should_quit = true,
-                (Char(c), _) => {
-                    print!("{}", c);
-                }
+                (Enter, _) => self.print('\n'),
+                (Char(c), _) => self.print(c),
                 _ => (),
             }
         }
     }
 
+    fn print(&mut self, c: char) {
+        print!("{}", c);
+        self.terminal.draw_rows().unwrap();
+    }
+
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         if self.should_quit {
-            Terminal::clear_screen()?;
+            self.terminal.clear_screen()?;
             print!("Goodbye.\r\n");
         }
         Ok(())

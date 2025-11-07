@@ -2,37 +2,42 @@ use crossterm::cursor::MoveTo;
 use crossterm::execute;
 use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
 
-pub struct Terminal;
+pub struct Terminal {
+    stdout: std::io::Stdout,
+}
 
 impl Terminal {
-    pub fn initialize() -> Result<(), std::io::Error> {
+    pub fn default() -> Self {
+        Terminal {
+            stdout: std::io::stdout(),
+        }
+    }
+
+    pub fn initialize(&mut self) -> Result<(), std::io::Error> {
         enable_raw_mode()?;
-        Self::clear_screen()
+        self.clear_screen()
     }
 
     pub fn terminate() -> Result<(), std::io::Error> {
         disable_raw_mode()
     }
 
-    pub fn clear_screen() -> Result<(), std::io::Error> {
-        let mut stdout = std::io::stdout();
-        execute!(stdout, MoveTo(1, 1))?;
-        execute!(stdout, Clear(ClearType::All))
+    pub fn clear_screen(&mut self) -> Result<(), std::io::Error> {
+        execute!(self.stdout, MoveTo(1, 1))?;
+        execute!(self.stdout, Clear(ClearType::All))
     }
 
-    pub fn draw_rows() -> Result<(), std::io::Error> {
-        // TODO draw ~ every row
-        let mut stdout = std::io::stdout();
+    pub fn draw_rows(&mut self) -> Result<(), std::io::Error> {
         let height = size()?;
         let pos = crossterm::cursor::position()?;
 
-        execute!(stdout, MoveTo(0, pos.1 + 2))?;
+        execute!(self.stdout, MoveTo(0, pos.1 + 2))?;
 
         for _ in pos.1 + 1..height.1 {
             println!("\r~");
         }
 
-        execute!(stdout, MoveTo(pos.0, pos.1))?;
+        execute!(self.stdout, MoveTo(pos.0, pos.1))?;
 
         Ok(())
     }

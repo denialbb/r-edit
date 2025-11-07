@@ -1,7 +1,5 @@
-use crossterm::cursor::MoveTo;
+use crate::terminal::Terminal;
 use crossterm::event::{Event, Event::Key, KeyCode::Char, KeyEvent, KeyModifiers, read};
-use crossterm::execute;
-use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode};
 
 pub struct Editor {
     should_quit: bool,
@@ -9,7 +7,6 @@ pub struct Editor {
 
 impl Editor {
     pub fn default() -> Self {
-        Self::clear_screen();
         Editor { should_quit: false }
     }
 
@@ -18,24 +15,15 @@ impl Editor {
     }
 
     pub fn run(&mut self) {
-        Self::initialize().unwrap();
+        Terminal::initialize().unwrap();
         let result = self.repl();
-        Self::terminate().unwrap();
+        Terminal::terminate().unwrap();
         result.unwrap();
     }
 
-    fn initialize() -> Result<(), std::io::Error> {
-        enable_raw_mode()?;
-        Self::clear_screen()
-    }
-
-    fn terminate() -> Result<(), std::io::Error> {
-        disable_raw_mode()
-    }
-
     pub fn repl(&mut self) -> Result<(), std::io::Error> {
-        enable_raw_mode()?;
         loop {
+            Terminal::draw_rows()?;
             let event = read()?;
             self.evaluate_event(event);
             self.refresh_screen()?;
@@ -51,9 +39,11 @@ impl Editor {
             code, modifiers, ..
         }) = event
         {
-            print!("{code}\n");
             match (code, modifiers) {
                 (Char('q'), KeyModifiers::CONTROL) => self.should_quit = true,
+                (Char(c), _) => {
+                    print!("{}", c);
+                }
                 _ => (),
             }
         }
@@ -61,15 +51,9 @@ impl Editor {
 
     fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
         if self.should_quit {
-            Self::clear_screen()?;
+            Terminal::clear_screen()?;
             print!("Goodbye.\r\n");
         }
         Ok(())
-    }
-
-    fn clear_screen() -> Result<(), std::io::Error> {
-        let mut stdout = std::io::stdout();
-        execute!(stdout, MoveTo(0, 0))?;
-        execute!(stdout, Clear(ClearType::All))
     }
 }

@@ -53,8 +53,10 @@ impl Editor {
                     self.should_quit = true;
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
-                // Enter => Terminal::print('\n').unwrap(),
-                // Char(c) => Terminal::print(c).unwrap(),
+                Char(c) => {
+                    Terminal::print(&c.to_string()).unwrap();
+                    info!("Printed character: {}", c);
+                },
                 _ => info!("Unhandled key event: {:?}", code),
             }
         }

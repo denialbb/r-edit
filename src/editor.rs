@@ -3,9 +3,9 @@ mod terminal;
 
 use crossterm::event::KeyCode::{Char, Enter};
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
+use log::info;
 use std::io::Error;
 use terminal::{Position, Size, Terminal};
-use log::info;
 
 pub struct Editor {
     should_quit: bool,
@@ -28,6 +28,7 @@ impl Editor {
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
         self.welcome_message();
+        read()?;
         loop {
             self.refresh_screen()?;
             if self.should_quit {
@@ -44,15 +45,14 @@ impl Editor {
     fn evaluate_event(&mut self, event: &Event) {
         info!("Evaluating event: {:?}", event);
         if let Key(KeyEvent {
-            code,
-            modifiers,
-            .. 
-        }) = event {
+            code, modifiers, ..
+        }) = event
+        {
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
                     self.should_quit = true;
                     info!("Ctrl-Q pressed, setting should_quit to true");
-                },
+                }
                 // Enter => Terminal::print('\n').unwrap(),
                 // Char(c) => Terminal::print(c).unwrap(),
                 _ => info!("Unhandled key event: {:?}", code),
@@ -99,13 +99,16 @@ impl Editor {
         Terminal::hide_cursor()?;
         Terminal::clear_screen()?;
 
-        dbg!(width, height);
         let version = env!("CARGO_PKG_VERSION");
         let message = format!("Welcome to R-EDIT -- version {}", version);
         let row = height / 3;
         let column = width / 2;
         let msg_len = message.len() as u16;
-        dbg!(msg_len);
+
+        info!("Welcome message: {}", message);
+        info!("Welcome message length: {}", msg_len);
+        info!("Welcome message row: {}", row);
+        info!("Welcome message column: {}", column);
 
         Terminal::move_cursor_to(Position {
             x: column - msg_len / 2,
@@ -120,3 +123,4 @@ impl Editor {
         Ok(())
     }
 }
+

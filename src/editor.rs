@@ -9,12 +9,11 @@ use terminal::{Position, Size, Terminal};
 
 pub struct Editor {
     should_quit: bool,
-    buffer: String,
 }
 
 impl Editor {
-    pub fn default() -> Self {
-        Self { should_quit: false, buffer: String::new() }
+    pub const fn default() -> Self {
+        Self { should_quit: false }
     }
 
     pub fn run(&mut self) {
@@ -57,12 +56,12 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
-                    self.buffer.push(*c);
-                    info!("Appended character to buffer: {}", c);
+                    Terminal::print(&c.to_string()).unwrap();
+                    info!("Printed character: {}", c);
                 },
                 Enter => {
-                    self.buffer.push('\n');
-                    info!("Appended newline to buffer");
+                    Terminal::print("\r\n").unwrap();
+                    info!("Printed newline");
                 },
                 _ => info!("Unhandled key event: {:?}", code),
             }
@@ -77,7 +76,7 @@ impl Editor {
             Terminal::print("Goodbye.\r\n")?;
             info!("Displayed goodbye message");
         } else {
-            self.draw_rows()?;
+            Self::draw_rows()?;
             Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
             info!("Drew rows and moved cursor to origin");
         }
@@ -87,21 +86,18 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_rows(&self) -> Result<(), Error> {
+    fn draw_rows() -> Result<(), Error> {
         info!("Drawing rows");
         let Size { height, .. } = Terminal::size()?;
 
-        for current_line in 0..height -1 {
+        for current_line in 0..height {
             Terminal::clear_current_line()?;
-            if let Some(line) = self.buffer.lines().nth(current_line as usize) {
-                Terminal::print(line)?;
-            } else {
-                Terminal::print("~")?;
-            }
+            Terminal::print("~")?;
             if current_line < height - 1 {
                 Terminal::print("\r\n")?;
             }
         }
+        info!("Rows drawn");
         Ok(())
     }
 

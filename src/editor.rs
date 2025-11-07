@@ -9,11 +9,12 @@ use terminal::{Position, Size, Terminal};
 
 pub struct Editor {
     should_quit: bool,
+    buffer: String,
 }
 
 impl Editor {
-    pub const fn default() -> Self {
-        Self { should_quit: false }
+    pub fn default() -> Self {
+        Self { should_quit: false, buffer: String::new() }
     }
 
     pub fn run(&mut self) {
@@ -45,7 +46,9 @@ impl Editor {
     fn evaluate_event(&mut self, event: &Event) {
         info!("Evaluating event: {:?}", event);
         if let Key(KeyEvent {
-            code, modifiers, ..
+            code,
+            modifiers,
+            .. 
         }) = event
         {
             match code {
@@ -54,12 +57,12 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
-                    Terminal::print(&c.to_string()).unwrap();
-                    info!("Printed character: {}", c);
+                    self.buffer.push(*c);
+                    info!("Appended character to buffer: {}", c);
                 },
                 Enter => {
-                    Terminal::print("\r\n").unwrap();
-                    info!("Printed newline");
+                    self.buffer.push('\n');
+                    info!("Appended newline to buffer");
                 },
                 _ => info!("Unhandled key event: {:?}", code),
             }
@@ -74,7 +77,7 @@ impl Editor {
             Terminal::print("Goodbye.\r\n")?;
             info!("Displayed goodbye message");
         } else {
-            Self::draw_rows()?;
+            self.draw_rows()?;
             Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
             info!("Drew rows and moved cursor to origin");
         }
@@ -84,18 +87,21 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_rows() -> Result<(), Error> {
+    fn draw_rows(&self) -> Result<(), Error> {
         info!("Drawing rows");
         let Size { height, .. } = Terminal::size()?;
 
-        for current_line in 0..height {
+        for current_line in 0..height -1 {
             Terminal::clear_current_line()?;
-            Terminal::print("~")?;
+            if let Some(line) = self.buffer.lines().nth(current_line as usize) {
+                Terminal::print(line)?;
+            } else {
+                Terminal::print("~")?;
+            }
             if current_line < height - 1 {
                 Terminal::print("\r\n")?;
             }
         }
-        info!("Rows drawn");
         Ok(())
     }
 
@@ -129,4 +135,3 @@ impl Editor {
         Ok(())
     }
 }
-

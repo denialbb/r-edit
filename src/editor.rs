@@ -5,6 +5,8 @@ use crossterm::event::KeyCode::{Backspace, Char, Enter};
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::info;
 use std::io::Error;
+use std::thread::sleep;
+use std::time::Duration;
 use terminal::{Position, Size, Terminal};
 
 pub struct Editor {
@@ -21,12 +23,14 @@ impl Editor {
     }
 
     pub fn run(&mut self) {
+        info!("__________________________________________");
         info!("Editor is running");
         Terminal::initialize().unwrap();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
         info!("Editor finished running");
+        info!("__________________________________________");
     }
 
     pub fn repl(&mut self) -> Result<(), Error> {
@@ -43,7 +47,7 @@ impl Editor {
             let event = read()?;
             self.evaluate_event(&event);
         }
-        info!("Exiting read-evaluate-print loop");
+        info!("Exiting REPL loop");
         Ok(())
     }
 
@@ -102,9 +106,9 @@ impl Editor {
         info!("Refreshing screen");
         Terminal::hide_cursor()?;
         if self.should_quit {
+            self.goodbye_message()?;
+            sleep(Duration::from_millis(1000));
             Terminal::clear_screen()?;
-            Terminal::print("Goodbye.\r\n")?;
-            info!("Displayed goodbye message");
         } else {
             self.draw_rows()?;
             Terminal::move_cursor_to(self.cursor_position)?;
@@ -143,6 +147,31 @@ impl Editor {
 
         let version = env!("CARGO_PKG_VERSION");
         let message = format!("R-EDIT -- v{}", version);
+        let row = height / 3;
+        let column = width / 2;
+        let msg_len = message.len() as u16;
+
+        Terminal::move_cursor_to(Position {
+            x: column - msg_len / 2,
+            y: row,
+        })?;
+        Terminal::print(&message)?;
+        Terminal::print("\r\n\r\n")?;
+
+        Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
+        self.cursor_position = Position { x: 0, y: 0 };
+        Terminal::show_cursor()?;
+        Terminal::execute()?;
+        Ok(())
+    }
+
+    fn goodbye_message(&mut self) -> Result<(), Error> {
+        info!("Displaying message");
+        let Size { width, height } = Terminal::size()?;
+        Terminal::hide_cursor()?;
+        Terminal::clear_screen()?;
+
+        let message = "Goodbye.";
         let row = height / 3;
         let column = width / 2;
         let msg_len = message.len() as u16;

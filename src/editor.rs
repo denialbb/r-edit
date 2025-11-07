@@ -9,6 +9,9 @@ use std::thread::sleep;
 use std::time::Duration;
 use terminal::{Position, Size, Terminal};
 
+const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub struct Editor {
     should_quit: bool,
     cursor_position: Position,
@@ -142,19 +145,25 @@ impl Editor {
     fn welcome_message(&mut self) -> Result<(), Error> {
         info!("Displaying welcome message");
         let Size { width, height } = Terminal::size()?;
+
         Terminal::hide_cursor()?;
         Terminal::clear_screen()?;
 
-        let version = env!("CARGO_PKG_VERSION");
-        let message = format!("R-EDIT -- v{}", version);
+        let message = format!("R-EDIT -- v{}", VERSION);
         let row = height / 3;
         let column = width / 2;
-        let msg_len = message.len() as u16;
+        let msg_len = message.len() as usize;
 
-        Terminal::move_cursor_to(Position {
-            x: column - msg_len / 2,
-            y: row,
-        })?;
+        match (column).checked_sub(msg_len / 2) {
+            Some(col) => {
+                Terminal::move_cursor_to(Position { x: col, y: row })?;
+            }
+            None => {
+                info!("Underflow");
+                Terminal::move_cursor_to(Position { x: 0, y: row })?;
+            }
+        }
+
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
 
@@ -171,15 +180,21 @@ impl Editor {
         Terminal::hide_cursor()?;
         Terminal::clear_screen()?;
 
-        let message = "Goodbye.";
+        let mut message = String::from("Goodbye.");
         let row = height / 3;
         let column = width / 2;
-        let msg_len = message.len() as u16;
+        let msg_len = message.len();
 
-        Terminal::move_cursor_to(Position {
-            x: column - msg_len / 2,
-            y: row,
-        })?;
+        match (column).checked_sub(msg_len / 2) {
+            Some(col) => {
+                Terminal::move_cursor_to(Position { x: col, y: row })?;
+            }
+            None => {
+                info!("Underflow");
+                Terminal::move_cursor_to(Position { x: 0, y: row })?;
+            }
+        }
+        message.truncate(width as usize);
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
 

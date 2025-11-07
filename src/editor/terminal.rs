@@ -1,3 +1,5 @@
+use core::fmt::Display;
+use crossterm::Command;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::queue;
 use crossterm::style::Print;
@@ -6,13 +8,13 @@ use std::io::{Error, Write, stdout};
 
 #[derive(Copy, Clone)]
 pub struct Size {
-    pub height: u16,
-    pub width: u16,
+    pub height: usize,
+    pub width: usize,
 }
 #[derive(Copy, Clone)]
 pub struct Position {
-    pub x: u16,
-    pub y: u16,
+    pub x: usize,
+    pub y: usize,
 }
 pub struct Terminal;
 
@@ -31,56 +33,69 @@ impl Terminal {
         Ok(())
     }
 
+    pub fn queue_command(command: impl Command) -> Result<(), Error> {
+        queue!(stdout(), command)?;
+        Ok(())
+    }
+
     pub fn clear_screen() -> Result<(), Error> {
         log::info!("Clearing screen");
-        queue!(stdout(), Clear(ClearType::All))?;
+        Self::queue_command(Clear(ClearType::All))?;
         Ok(())
     }
 
     pub fn clear_current_line() -> Result<(), Error> {
         log::info!("Clearing current line");
-        queue!(stdout(), Clear(ClearType::CurrentLine))?;
+        Self::queue_command(Clear(ClearType::CurrentLine))?;
         Ok(())
     }
 
     pub fn clear_up() -> Result<(), Error> {
-        queue!(stdout(), Clear(ClearType::FromCursorUp))?;
+        Self::queue_command(Clear(ClearType::FromCursorUp))?;
         Ok(())
     }
 
     pub fn clear_down() -> Result<(), Error> {
         log::info!("Clearing down");
-        queue!(stdout(), Clear(ClearType::FromCursorDown))?;
+        Self::queue_command(Clear(ClearType::FromCursorDown))?;
         Ok(())
     }
 
     pub fn clear_right() -> Result<(), Error> {
-        queue!(stdout(), Clear(ClearType::UntilNewLine))?;
+        Self::queue_command(Clear(ClearType::UntilNewLine))?;
         Ok(())
     }
 
     pub fn move_cursor_to(Position { x, y }: Position) -> Result<(), Error> {
-        queue!(stdout(), MoveTo(x, y))?;
+        Self::queue_command(MoveTo(x as u16, y as u16))?;
         Ok(())
     }
 
     pub fn show_cursor() -> Result<(), Error> {
-        queue!(stdout(), Show)?;
+        Self::queue_command(Show)?;
         Ok(())
     }
 
     pub fn hide_cursor() -> Result<(), Error> {
-        queue!(stdout(), Hide)?;
+        Self::queue_command(Hide)?;
         Ok(())
     }
 
+    /// Returns the current size of this Terminal.
+    /// Edge Case for systems with `usize` < `u16`:
+    /// * A `Size` representing the terminal size. Any coordinate `z` truncated to `usize` if `usize` < `z` < `u16`
     pub fn size() -> Result<Size, Error> {
         let (width, height) = size()?;
+        // clippy::as_conversions: see doc above
+        #[allow(clippy::as_conversions)]
+        let width = width as usize;
+        #[allow(clippy::as_conversions)]
+        let height = height as usize;
         Ok(Size { height, width })
     }
 
-    pub fn print(string: &str) -> Result<(), Error> {
-        queue!(stdout(), Print(string))?;
+    pub fn print<T: Display>(string: T) -> Result<(), Error> {
+        Self::queue_command(Print(string))?;
         Ok(())
     }
 

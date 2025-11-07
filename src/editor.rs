@@ -61,13 +61,15 @@ impl Editor {
                     Terminal::print(&c.to_string()).unwrap();
                     self.cursor_position.x += 1;
                     info!("Printed character: {}", c);
+                    self.refresh_screen().unwrap();
                 }
                 Enter => {
                     Terminal::print("\r\n").unwrap();
                     self.cursor_position.y += 1;
                     self.cursor_position.x = 0;
-                    self.draw_rows().unwrap();
                     info!("Printed newline");
+                    Terminal::clear_current_line().unwrap();
+                    self.refresh_screen().unwrap();
                 }
                 Backspace => {
                     if self.cursor_position.x > 0 {
@@ -84,6 +86,7 @@ impl Editor {
                         .unwrap();
                         self.cursor_position.x -= 1;
                         info!("Backspace pressed");
+                        self.refresh_screen().unwrap();
                     }
                 }
                 _ => info!("Unhandled key event: {:?}", code),
@@ -113,8 +116,8 @@ impl Editor {
         info!("Drawing rows");
         let Size { height, .. } = Terminal::size()?;
 
-        for current_line in self.cursor_position.y..height {
-            Terminal::clear_current_line()?;
+        for current_line in self.cursor_position.y + 1..height {
+            // Terminal::clear_current_line()?;
             Terminal::print("~")?;
             if current_line < height - 1 {
                 Terminal::print("\r\n")?;

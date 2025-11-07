@@ -1,38 +1,75 @@
-use crossterm::event::{Event::Key, KeyCode::Char, read};
-use crossterm::terminal::disable_raw_mode;
-use crossterm::terminal::enable_raw_mode;
+use crossterm::cursor::MoveTo;
+use crossterm::event::{Event, Event::Key, KeyCode::Char, KeyEvent, KeyModifiers, read};
+use crossterm::execute;
+use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode};
 
-pub struct Editor {}
+pub struct Editor {
+    should_quit: bool,
+}
 
 impl Editor {
     pub fn default() -> Self {
-        Editor {}
+        Self::clear_screen();
+        Editor { should_quit: false }
     }
 
     pub fn new() -> Editor {
-        Editor {}
+        Editor { should_quit: false }
     }
 
-    pub fn run(&self) {
-        enable_raw_mode().unwrap();
-        loop {
-            match read() {
-                Ok(Key(event)) => {
-                    println!("Event: {event:?}\r");
+    pub fn run(&mut self) {
+        Self::initialize().unwrap();
+        let result = self.repl();
+        Self::terminate().unwrap();
+        result.unwrap();
+    }
 
-                    match event.code {
-                        Char(c) => {
-                            if c == 'q' {
-                                break;
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-                Err(e) => println!("Error: {e}"),
+    fn initialize() -> Result<(), std::io::Error> {
+        enable_raw_mode()?;
+        Self::clear_screen()
+    }
+
+    fn terminate() -> Result<(), std::io::Error> {
+        disable_raw_mode()
+    }
+
+    pub fn repl(&mut self) -> Result<(), std::io::Error> {
+        enable_raw_mode()?;
+        loop {
+            let event = read()?;
+            self.evaluate_event(event);
+            self.refresh_screen()?;
+            if self.should_quit {
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn evaluate_event(&mut self, event: Event) {
+        if let Key(KeyEvent {
+            code, modifiers, ..
+        }) = event
+        {
+            print!("{code}\n");
+            match (code, modifiers) {
+                (Char('q'), KeyModifiers::CONTROL) => self.should_quit = true,
                 _ => (),
             }
         }
-        disable_raw_mode().unwrap();
+    }
+
+    fn refresh_screen(&mut self) -> Result<(), std::io::Error> {
+        if self.should_quit {
+            Self::clear_screen()?;
+            print!("Goodbye.\r\n");
+        }
+        Ok(())
+    }
+
+    fn clear_screen() -> Result<(), std::io::Error> {
+        let mut stdout = std::io::stdout();
+        execute!(stdout, MoveTo(0, 0))?;
+        execute!(stdout, Clear(ClearType::All))
     }
 }

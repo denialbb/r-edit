@@ -1,7 +1,7 @@
 pub mod logger;
 mod terminal;
 
-use crossterm::event::KeyCode::{Char, Enter};
+use crossterm::event::KeyCode::Char;
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::info;
 use std::io::Error;

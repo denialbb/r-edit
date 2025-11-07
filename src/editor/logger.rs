@@ -6,6 +6,7 @@ use chrono::Local;
 
 pub struct Config {
     pub level_filter: LevelFilter,
+    pub truncate: bool,
 }
 
 pub struct CustomLogger {
@@ -15,10 +16,13 @@ pub struct CustomLogger {
 
 impl CustomLogger {
     pub fn new(config: Config, log_file_path: &str) -> Result<Self, std::io::Error> {
-        let log_file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(log_file_path)?;
+        let mut open_options = OpenOptions::new();
+        if config.truncate {
+            open_options.create(true).write(true).truncate(true);
+        } else {
+            open_options.create(true).append(true);
+        }
+        let log_file = open_options.open(log_file_path)?;
         Ok(CustomLogger { config, log_file: Mutex::new(log_file) })
     }
 }

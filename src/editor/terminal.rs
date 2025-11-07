@@ -68,7 +68,6 @@ impl Terminal {
 
     pub fn print(string: &str) -> Result<(), Error> {
         queue!(stdout(), Print(string))?;
-        Self::clear_current_line()?;
         Ok(())
     }
 

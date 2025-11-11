@@ -15,10 +15,7 @@ pub struct CustomLogger {
 }
 
 impl CustomLogger {
-    pub fn new(
-        config: Config,
-        log_file_path: &str,
-    ) -> Result<Self, std::io::Error> {
+    pub fn new(config: Config, log_file_path: &str) -> Result<Self, std::io::Error> {
         let mut open_options = OpenOptions::new();
         if config.truncate {
             open_options.create(true).write(true).truncate(true);
@@ -45,8 +42,7 @@ impl log::Log for CustomLogger {
 
         let time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        let log_entry =
-            format!("{} [{}] {}\n", time, record.level(), record.args());
+        let log_entry = format!("{} [{}] {}\n", time, record.level(), record.args());
 
         let mut file = self.log_file.lock().unwrap();
         if let Err(e) = write!(file, "{}", log_entry) {

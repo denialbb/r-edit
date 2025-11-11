@@ -3,28 +3,60 @@ use crossterm::Command;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::queue;
 use crossterm::style::Print;
-use crossterm::terminal::{
-    Clear, ClearType, disable_raw_mode, enable_raw_mode, size,
-};
+use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
+use std::fmt;
 use std::io::{Error, Write, stdout};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
+///  Height and Width of a Terminal
 pub struct Size {
     pub height: usize,
     pub width: usize,
 }
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
+///  Represents coordinates on a Screen
 pub struct Position {
     pub x: usize,
     pub y: usize,
 }
+#[derive(Debug, Copy, Clone)]
+///  Represents coordinates on a Document
+pub struct Location {
+    pub x: usize,
+    pub y: usize,
+}
+
+impl Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl Into<Position> for Location {
+    fn into(self) -> Position {
+        Position {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
+
+impl Into<Location> for Position {
+    fn into(self) -> Location {
+        Location {
+            x: self.x,
+            y: self.y,
+        }
+    }
+}
+
 pub struct Terminal;
 
 impl Terminal {
     pub fn initialize() -> Result<(), Error> {
         enable_raw_mode()?;
         Self::clear_screen()?;
-        Self::move_cursor_to(Position { x: 0, y: 0 })?;
+        Self::move_caret_to(Position { x: 0, y: 0 })?;
         Self::execute()?;
         Ok(())
     }
@@ -68,17 +100,17 @@ impl Terminal {
         Ok(())
     }
 
-    pub fn move_cursor_to(Position { x, y }: Position) -> Result<(), Error> {
+    pub fn move_caret_to(Position { x, y }: Position) -> Result<(), Error> {
         Self::queue_command(MoveTo(x as u16, y as u16))?;
         Ok(())
     }
 
-    pub fn show_cursor() -> Result<(), Error> {
+    pub fn show_caret() -> Result<(), Error> {
         Self::queue_command(Show)?;
         Ok(())
     }
 
-    pub fn hide_cursor() -> Result<(), Error> {
+    pub fn hide_caret() -> Result<(), Error> {
         Self::queue_command(Hide)?;
         Ok(())
     }

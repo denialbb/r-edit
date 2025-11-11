@@ -1,26 +1,32 @@
+mod caret;
 pub mod logger;
 mod terminal;
 
-use crossterm::event::KeyCode::{Backspace, Char, Enter};
+use caret::{Caret, Direction};
+use crossterm::event::KeyCode::{
+    Backspace, Char, Down, Enter, Left, Right, Up,
+};
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
+use log::debug;
 use log::info;
 use std::io::Error;
+
 use std::thread::sleep;
 use std::time::Duration;
-use terminal::{Position, Size, Terminal};
+use terminal::{Location, Position, Size, Terminal};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Editor {
     should_quit: bool,
-    cursor_position: Position,
+    caret: Caret,
 }
 
 impl Editor {
     pub fn default() -> Self {
         Self {
             should_quit: false,
-            cursor_position: Position { x: 0, y: 0 },
+            caret: caret::Caret::default(),
         }
     }
 
@@ -65,35 +71,37 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
-                    if self.cursor_position.x == 0 {
+                    if self.caret.location.x == 0 {
                         Terminal::clear_current_line().unwrap();
                     }
                     Terminal::print(&c.to_string()).unwrap();
-                    self.cursor_position.x += 1;
+                    self.caret.shift(Direction::Right);
                     info!("Printed character: {}", c);
                 }
                 Enter => {
                     Terminal::print("\r\n").unwrap();
-                    self.cursor_position.y += 1;
-                    self.cursor_position.x = 0;
+                    self.caret.shift(Direction::Down);
+                    self.caret.location.x = 0;
+                    let _ = Terminal::clear_current_line();
                     info!("Printed newline");
                 }
                 Backspace => {
-                    if self.cursor_position.x > 0 {
-                        Terminal::move_cursor_to(Position {
-                            x: self.cursor_position.x - 1,
-                            y: self.cursor_position.y,
-                        })
-                        .unwrap();
-                        Terminal::print(" ").unwrap();
-                        Terminal::move_cursor_to(Position {
-                            x: self.cursor_position.x - 1,
-                            y: self.cursor_position.y,
-                        })
-                        .unwrap();
-                        self.cursor_position.x -= 1;
-                        info!("Backspace pressed");
-                    }
+                    self.caret.shift(Direction::Left);
+                    Terminal::print(" ").unwrap();
+                    // self.caret.shift(Direction::Left);
+                    info!("Backspace pressed");
+                }
+                Left => {
+                    self.caret.shift(Direction::Left);
+                }
+                Right => {
+                    self.caret.shift(Direction::Right);
+                }
+                Up => {
+                    self.caret.shift(Direction::Up);
+                }
+                Down => {
+                    self.caret.shift(Direction::Down);
                 }
                 _ => info!("Unhandled key event: {:?}", code),
             }
@@ -102,27 +110,29 @@ impl Editor {
 
     fn refresh_screen(&mut self) -> Result<(), Error> {
         info!("Refreshing screen");
-        Terminal::hide_cursor()?;
+        debug!("Caret location: {}", self.caret.location);
+        Terminal::hide_caret()?;
         if self.should_quit {
             self.goodbye_message()?;
             sleep(Duration::from_millis(1000));
         } else {
             self.draw_rows()?;
-            Terminal::move_cursor_to(self.cursor_position)?;
+            Terminal::move_caret_to(self.caret.location.into());
         }
-        Terminal::show_cursor()?;
+        Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
     }
 
     fn draw_rows(&mut self) -> Result<(), Error> {
-        let Size { height, .. } = Terminal::size()?;
+        let Size { height, width } = Terminal::size()?;
+        self.caret.size = Size { height, width };
 
-        if self.cursor_position.x == 0 {
-            Terminal::clear_current_line()?;
-            if self.cursor_position.y == 0 {
+        Terminal::print("\r\n")?;
+        if self.caret.location.x == 0 {
+            if self.caret.location.y == 0 {
                 Terminal::clear_down()?;
-                for current_line in self.cursor_position.y + 1..height {
+                for current_line in self.caret.location.y + 1..height {
                     Terminal::print("~")?;
                     if current_line < height - 1 {
                         Terminal::print("\r\n")?;
@@ -138,7 +148,7 @@ impl Editor {
         info!("Displaying welcome message");
         let Size { width, height } = Terminal::size()?;
 
-        Terminal::hide_cursor()?;
+        Terminal::hide_caret()?;
         Terminal::clear_screen()?;
 
         let message = format!("R-EDIT -- v{}", VERSION);
@@ -148,20 +158,20 @@ impl Editor {
 
         match (column).checked_sub(msg_len / 2) {
             Some(col) => {
-                Terminal::move_cursor_to(Position { x: col, y: row })?;
+                Terminal::move_caret_to(Position { x: col, y: row })?;
             }
             None => {
                 info!("Underflow");
-                Terminal::move_cursor_to(Position { x: 0, y: row })?;
+                Terminal::move_caret_to(Position { x: 0, y: row })?;
             }
         }
 
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
 
-        Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
-        self.cursor_position = Position { x: 0, y: 0 };
-        Terminal::show_cursor()?;
+        Terminal::move_caret_to(Position { x: 0, y: 0 })?;
+        self.caret.location = Location { x: 0, y: 0 };
+        Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
     }
@@ -169,7 +179,7 @@ impl Editor {
     fn goodbye_message(&mut self) -> Result<(), Error> {
         info!("Displaying message");
         let Size { width, height } = Terminal::size()?;
-        Terminal::hide_cursor()?;
+        Terminal::hide_caret()?;
         Terminal::clear_screen()?;
 
         let mut message = String::from("Goodbye.");
@@ -179,20 +189,20 @@ impl Editor {
 
         match (column).checked_sub(msg_len / 2) {
             Some(col) => {
-                Terminal::move_cursor_to(Position { x: col, y: row })?;
+                Terminal::move_caret_to(Position { x: col, y: row })?;
             }
             None => {
                 info!("Underflow");
-                Terminal::move_cursor_to(Position { x: 0, y: row })?;
+                Terminal::move_caret_to(Position { x: 0, y: row })?;
             }
         }
         message.truncate(width as usize);
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
 
-        Terminal::move_cursor_to(Position { x: 0, y: 0 })?;
-        self.cursor_position = Position { x: 0, y: 0 };
-        Terminal::show_cursor()?;
+        Terminal::move_caret_to(Position { x: 0, y: 0 })?;
+        self.caret.location = Location { x: 0, y: 0 };
+        Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
     }

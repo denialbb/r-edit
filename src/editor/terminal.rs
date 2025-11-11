@@ -3,7 +3,9 @@ use crossterm::Command;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::queue;
 use crossterm::style::Print;
-use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
+use crossterm::terminal::{
+    Clear, ClearType, disable_raw_mode, enable_raw_mode, size,
+};
 use std::io::{Error, Write, stdout};
 
 #[derive(Copy, Clone)]
@@ -83,7 +85,8 @@ impl Terminal {
 
     /// Returns the current size of this Terminal.
     /// Edge Case for systems with `usize` < `u16`:
-    /// * A `Size` representing the terminal size. Any coordinate `z` truncated to `usize` if `usize` < `z` < `u16`
+    /// * A `Size` representing the terminal size.
+    /// Any coordinate `z` truncated to `usize` if `usize` < `z` < `u16`
     pub fn size() -> Result<Size, Error> {
         let (width, height) = size()?;
         // clippy::as_conversions: see doc above
@@ -104,4 +107,3 @@ impl Terminal {
         Ok(())
     }
 }
-

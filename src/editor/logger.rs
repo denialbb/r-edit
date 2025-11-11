@@ -1,8 +1,8 @@
+use chrono::Local;
+use log::{self, LevelFilter};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
-use log::{self, LevelFilter};
 use std::sync::Mutex;
-use chrono::Local;
 
 pub struct Config {
     pub level_filter: LevelFilter,
@@ -15,7 +15,10 @@ pub struct CustomLogger {
 }
 
 impl CustomLogger {
-    pub fn new(config: Config, log_file_path: &str) -> Result<Self, std::io::Error> {
+    pub fn new(
+        config: Config,
+        log_file_path: &str,
+    ) -> Result<Self, std::io::Error> {
         let mut open_options = OpenOptions::new();
         if config.truncate {
             open_options.create(true).write(true).truncate(true);
@@ -23,7 +26,10 @@ impl CustomLogger {
             open_options.create(true).append(true);
         }
         let log_file = open_options.open(log_file_path)?;
-        Ok(CustomLogger { config, log_file: Mutex::new(log_file) })
+        Ok(CustomLogger {
+            config,
+            log_file: Mutex::new(log_file),
+        })
     }
 }
 
@@ -39,12 +45,8 @@ impl log::Log for CustomLogger {
 
         let time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        let log_entry = format!(
-            "{} [{}] {}\n",
-            time,
-            record.level(),
-            record.args()
-        );
+        let log_entry =
+            format!("{} [{}] {}\n", time, record.level(), record.args());
 
         let mut file = self.log_file.lock().unwrap();
         if let Err(e) = write!(file, "{}", log_entry) {

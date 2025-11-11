@@ -13,7 +13,6 @@ fn main() {
         "r-edit.log",
     )
     .unwrap();
-
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(LevelFilter::Info);
 

@@ -106,7 +106,6 @@ impl Editor {
         if self.should_quit {
             self.goodbye_message()?;
             sleep(Duration::from_millis(1000));
-            Terminal::clear_screen()?;
         } else {
             self.draw_rows()?;
             Terminal::move_cursor_to(self.cursor_position)?;

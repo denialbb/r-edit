@@ -9,7 +9,6 @@ use std::thread::sleep;
 use std::time::Duration;
 use terminal::{Position, Size, Terminal};
 
-const NAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Editor {
@@ -67,20 +66,17 @@ impl Editor {
                 }
                 Char(c) => {
                     if self.cursor_position.x == 0 {
-                        info!("Clearing current line");
                         Terminal::clear_current_line().unwrap();
                     }
                     Terminal::print(&c.to_string()).unwrap();
                     self.cursor_position.x += 1;
                     info!("Printed character: {}", c);
-                    self.refresh_screen().unwrap();
                 }
                 Enter => {
                     Terminal::print("\r\n").unwrap();
                     self.cursor_position.y += 1;
                     self.cursor_position.x = 0;
                     info!("Printed newline");
-                    self.refresh_screen().unwrap();
                 }
                 Backspace => {
                     if self.cursor_position.x > 0 {
@@ -97,7 +93,6 @@ impl Editor {
                         .unwrap();
                         self.cursor_position.x -= 1;
                         info!("Backspace pressed");
-                        self.refresh_screen().unwrap();
                     }
                 }
                 _ => info!("Unhandled key event: {:?}", code),
@@ -125,10 +120,8 @@ impl Editor {
         let Size { height, .. } = Terminal::size()?;
 
         if self.cursor_position.x == 0 {
-            info!("Clearing current line");
             Terminal::clear_current_line()?;
             if self.cursor_position.y == 0 {
-                info!("Drawing rows");
                 Terminal::clear_down()?;
                 for current_line in self.cursor_position.y + 1..height {
                     Terminal::print("~")?;
@@ -205,4 +198,3 @@ impl Editor {
         Ok(())
     }
 }
-

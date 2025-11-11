@@ -5,7 +5,15 @@ use editor::logger::{Config, CustomLogger};
 use log::{self, LevelFilter};
 
 fn main() {
-    let logger = CustomLogger::new(Config { level_filter: LevelFilter::Info, truncate: true }, "r-edit.log").unwrap();
+    let logger = CustomLogger::new(
+        Config {
+            level_filter: LevelFilter::Info,
+            truncate: true,
+        },
+        "r-edit.log",
+    )
+    .unwrap();
+
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(LevelFilter::Info);
 

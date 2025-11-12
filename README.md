@@ -15,6 +15,7 @@ R-Edit is a lightweight, terminal-based text editor written in Rust. It is a sim
 - Clean, distraction-free user interface.
 - Graceful exit with a goodbye message.
 - Logging to a file (`r-edit.log`).
+- File I/O: Open and save files.
 
 ## Getting Started
 
@@ -45,6 +46,7 @@ Once the editor is running, you can start typing.
 ### Keybindings
 
 - `Ctrl-Q`: Quit the editor.
+- `Ctrl-S`: Save the current file.
 - `Char`: Any character is printed to the screen.
 - `Enter`: Creates a new line.
 - `Backspace`: Deletes the character to the left of the cursor.

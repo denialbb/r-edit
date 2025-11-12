@@ -2,6 +2,7 @@ use crate::editor::Caret;
 use crate::editor::Editor;
 use crate::editor::Size;
 use crate::editor::Terminal;
+use crate::editor::buffer::Buffer;
 use crate::editor::debug;
 use crate::editor::info;
 use crate::editor::read;
@@ -13,19 +14,23 @@ use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct View {
+pub struct View<'a> {
     is_new_buffer: bool,
+    buffer: &'a Buffer,
 }
 
-impl View {
-    pub fn new() -> View {
+impl View<'_> {
+    pub fn new(buffer: &Buffer) -> View {
         View {
             is_new_buffer: true,
+            buffer: buffer,
         }
     }
+
     /// Render the current state of the editor, called in the main loop
     pub fn render(self: &mut Self, editor: &mut Editor) -> Result<(), Error> {
         debug!("Rendering editor");
+
         if self.is_new_buffer {
             Self::welcome_message(&mut editor.caret)?;
             read()?;
@@ -33,8 +38,9 @@ impl View {
             Self::set_size(&mut editor.caret)?;
             let size = Terminal::size()?;
             Self::clear_screen(&mut editor.caret, size)?;
-            Self::draw_buffer(&mut editor.caret)?;
+            Self::draw_buffer(self.buffer, &mut editor.caret)?;
         }
+
         Self::refresh_screen(editor)?;
         Ok(())
     }
@@ -42,7 +48,9 @@ impl View {
     pub fn refresh_screen(editor: &mut Editor) -> Result<(), Error> {
         info!("Refreshing screen");
         debug!("Caret location: {}", editor.caret.location);
+
         Terminal::hide_caret()?;
+
         if editor.should_quit {
             Self::goodbye_message(&mut editor.caret)?;
             sleep(Duration::from_millis(1000));
@@ -51,20 +59,28 @@ impl View {
             Terminal::move_caret_to(editor.caret.location.into())?;
             // Self::draw_rows(&mut editor.caret)?;
         }
+
         Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
     }
 
-    pub fn draw_buffer(caret: &mut Caret) -> Result<(), Error> {
+    pub fn draw_buffer(
+        buffer: &Buffer,
+        caret: &mut Caret,
+    ) -> Result<(), Error> {
+        info!("Drawing buffer");
+
         caret.location = Location { x: 0, y: 0 };
         Terminal::move_caret_to(caret.location.into())?;
-        let slice: &str = "Hello World!";
-        Terminal::print(slice)?;
-        caret.location = Location {
-            x: slice.len(),
-            y: 0,
-        };
+        let lines: &Vec<String> = &buffer.lines;
+        for line in lines {
+            Terminal::print(line.as_str())?;
+            Terminal::print("\r\n")?;
+        }
+
+        let location: Location = Location { x: 0, y: 0 };
+        caret.location = location;
         Ok(())
     }
 
@@ -73,8 +89,8 @@ impl View {
         caret.size = size;
         Ok(())
     }
+
     pub fn draw_rows(caret: &mut Caret) -> Result<(), Error> {
-        // Self::clear_screen(caret, height, width)?;
         Terminal::print("\r\n")?;
 
         Ok(())
@@ -131,10 +147,11 @@ impl View {
 
     pub fn goodbye_message(caret: &mut Caret) -> Result<(), Error> {
         info!("Displaying message");
-        let Size { width, height } = Terminal::size()?;
+
         Terminal::hide_caret()?;
         Terminal::clear_screen()?;
 
+        let Size { width, height } = Terminal::size()?;
         let mut message = String::from("Goodbye.");
         let row = height / 3;
         let column = width / 2;
@@ -149,6 +166,7 @@ impl View {
                 Terminal::move_caret_to(Position { x: 0, y: row })?;
             }
         }
+
         message.truncate(width as usize);
         Terminal::print(&message)?;
         Terminal::print("\r\n\r\n")?;
@@ -156,6 +174,7 @@ impl View {
         Terminal::move_caret_to(Position { x: 0, y: 0 })?;
         caret.location = Location { x: 0, y: 0 };
         Terminal::show_caret()?;
+
         Terminal::execute()?;
         Ok(())
     }

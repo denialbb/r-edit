@@ -1,8 +1,10 @@
+pub mod buffer;
 pub mod caret;
 pub mod logger;
 pub mod terminal;
 pub mod view;
 
+use buffer::Buffer;
 use caret::{Caret, Direction};
 use crossterm::event::KeyCode::{
     Backspace, Char, Down, End, Enter, Home, Left, PageDown, PageUp, Right, Up,
@@ -28,19 +30,21 @@ impl Editor {
     }
 
     pub fn run(&mut self) {
-        info!("__________________________________________");
+        info!("--------------------------------------------");
         info!("Editor is running");
         Terminal::initialize().unwrap();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
         info!("Editor finished running");
-        info!("__________________________________________");
+        info!("--------------------------------------------");
     }
 
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
-        let mut view = View::new();
+        let mut buffer = Buffer::read_file("test/test.txt");
+
+        let mut view = View::new(&buffer);
         loop {
             View::render(&mut view, self)?;
             if self.should_quit {
@@ -66,9 +70,6 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
-                    if self.caret.location.x == 0 {
-                        Terminal::clear_current_line().unwrap();
-                    }
                     Terminal::print(&c.to_string()).unwrap();
                     self.caret.shift(Direction::Right);
                     info!("Printed character: {}", c);

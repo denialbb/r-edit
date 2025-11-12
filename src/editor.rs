@@ -13,12 +13,17 @@ use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::debug;
 use log::info;
 use std::io::Error;
+use std::thread::sleep;
+use std::time::Duration;
 use terminal::{Size, Terminal};
 use view::View;
 
 pub struct Editor {
     should_quit: bool,
     caret: Caret,
+    view: View,
+    // buffers: Vec<&Buffer>,
+    current_buffer: Buffer,
 }
 
 impl Editor {
@@ -26,6 +31,9 @@ impl Editor {
         Self {
             should_quit: false,
             caret: caret::Caret::default(),
+            // buffers: Vec::new(),
+            current_buffer: Buffer::default(),
+            view: View::default(),
         }
     }
 
@@ -33,6 +41,10 @@ impl Editor {
         info!("--------------------------------------------");
         info!("Editor is running");
         Terminal::initialize().unwrap();
+        self.current_buffer = Buffer::read_file("test/test.txt");
+        // self.buffers.push(self.current_buffer);
+
+        self.view = View::new();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
@@ -42,18 +54,25 @@ impl Editor {
 
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
-        let mut buffer = Buffer::read_file("test/test.txt");
 
-        let mut view = View::new(&buffer);
         loop {
-            View::render(&mut view, self)?;
+            View::render(
+                &mut self.view,
+                &mut self.caret,
+                &mut self.current_buffer,
+            )?;
+
             if self.should_quit {
                 info!("Quitting editor");
+                View::goodbye_message(&mut self.caret)?;
+                sleep(Duration::from_millis(1000));
                 break;
             }
+
             let event = read()?;
             self.evaluate_event(&event);
         }
+
         info!("Exiting REPL loop");
         Ok(())
     }
@@ -70,22 +89,33 @@ impl Editor {
                     info!("Ctrl-Q pressed, setting should_quit to true");
                 }
                 Char(c) => {
-                    Terminal::print(&c.to_string()).unwrap();
+                    Buffer::insert(
+                        &mut self.current_buffer,
+                        *c,
+                        self.caret.location,
+                    );
+
                     self.caret.shift(Direction::Right);
-                    info!("Printed character: {}", c);
                 }
                 Enter => {
-                    Terminal::print("\r\n").unwrap();
+                    Buffer::insert(
+                        &mut self.current_buffer,
+                        '\n',
+                        self.caret.location,
+                    );
+
+                    View::draw_buffer(&self.current_buffer, &mut self.caret)
+                        .unwrap();
                     self.caret.shift(Direction::Down);
                     self.caret.location.x = 0;
-                    Terminal::clear_current_line().unwrap();
-                    info!("Printed newline");
                 }
                 Backspace => {
+                    Buffer::backspace(
+                        &mut self.current_buffer,
+                        self.caret.location,
+                    );
+
                     self.caret.shift(Direction::Left);
-                    Terminal::print(" ").unwrap();
-                    // self.caret.shift(Direction::Left);
-                    info!("Backspace pressed");
                 }
                 Left => {
                     self.caret.shift(Direction::Left);

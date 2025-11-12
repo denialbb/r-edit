@@ -136,6 +136,11 @@ impl Terminal {
         Ok(())
     }
 
+    pub fn insert(string: &str) -> Result<(), Error> {
+        Self::queue_command(Print(string))?;
+        Ok(())
+    }
+
     pub fn execute() -> Result<(), Error> {
         stdout().flush()?;
         Ok(())

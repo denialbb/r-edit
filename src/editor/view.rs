@@ -9,57 +9,77 @@ use crate::editor::read;
 use crate::editor::terminal::Location;
 use crate::editor::terminal::Position;
 use std::io::Error;
-use std::thread::sleep;
-use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct View<'a> {
+pub struct View {
     is_new_buffer: bool,
-    buffer: &'a Buffer,
 }
 
-impl View<'_> {
-    pub fn new(buffer: &Buffer) -> View {
+impl View {
+    pub fn default() -> View {
         View {
             is_new_buffer: true,
-            buffer: buffer,
+        }
+    }
+    pub fn new() -> View {
+        View {
+            is_new_buffer: true,
         }
     }
 
     /// Render the current state of the editor, called in the main loop
-    pub fn render(self: &mut Self, editor: &mut Editor) -> Result<(), Error> {
+    pub fn render(
+        view: &mut View,
+        caret: &mut Caret,
+        current_buffer: &Buffer,
+    ) -> Result<(), Error> {
         debug!("Rendering editor");
 
-        if self.is_new_buffer {
-            Self::welcome_message(&mut editor.caret)?;
+        if view.is_new_buffer {
+            Self::welcome_message(caret)?;
             read()?;
-            self.is_new_buffer = false;
-            Self::set_size(&mut editor.caret)?;
-            let size = Terminal::size()?;
-            Self::clear_screen(&mut editor.caret, size)?;
-            Self::draw_buffer(self.buffer, &mut editor.caret)?;
+            view.is_new_buffer = false;
+            Self::set_size(caret)?;
+            let location: Location = Location { x: 0, y: 0 };
+            caret.location = location;
+            Self::draw_buffer(&current_buffer, caret)?;
         }
 
-        Self::refresh_screen(editor)?;
+        view.refresh_screen(caret, current_buffer)?;
         Ok(())
     }
 
-    pub fn refresh_screen(editor: &mut Editor) -> Result<(), Error> {
+    pub fn refresh_screen(
+        self: &mut Self,
+        caret: &mut Caret,
+        current_buffer: &Buffer,
+    ) -> Result<(), Error> {
         info!("Refreshing screen");
-        debug!("Caret location: {}", editor.caret.location);
+        debug!("Caret location: {}", caret.location);
 
         Terminal::hide_caret()?;
+        Self::set_size(caret)?;
 
-        if editor.should_quit {
-            Self::goodbye_message(&mut editor.caret)?;
-            sleep(Duration::from_millis(1000));
-        } else {
-            Self::set_size(&mut editor.caret)?;
-            Terminal::move_caret_to(editor.caret.location.into())?;
-            // Self::draw_rows(&mut editor.caret)?;
+        let current_line = caret.location.y;
+        Terminal::move_caret_to(Position {
+            x: 0,
+            y: current_line,
+        })?;
+
+        let string = current_buffer.get_line(current_line);
+        match string {
+            Some(string) => {
+                debug!("Current line: {}", string);
+                Terminal::clear_current_line()?;
+                Terminal::print(string.as_str())?;
+            }
+            None => {
+                debug!("Current line: None");
+            }
         }
 
+        Terminal::move_caret_to(caret.location.into())?;
         Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
@@ -71,16 +91,19 @@ impl View<'_> {
     ) -> Result<(), Error> {
         info!("Drawing buffer");
 
-        caret.location = Location { x: 0, y: 0 };
-        Terminal::move_caret_to(caret.location.into())?;
+        let size = Terminal::size()?;
         let lines: &Vec<String> = &buffer.lines;
+
+        Self::clear_screen(caret, size)?;
+        Terminal::move_caret_to(Position { x: 0, y: 0 })?;
+
         for line in lines {
+            debug!("Line: {}", line);
             Terminal::print(line.as_str())?;
             Terminal::print("\r\n")?;
         }
 
-        let location: Location = Location { x: 0, y: 0 };
-        caret.location = location;
+        Terminal::move_caret_to(caret.location.into())?;
         Ok(())
     }
 
@@ -90,26 +113,22 @@ impl View<'_> {
         Ok(())
     }
 
-    pub fn draw_rows(caret: &mut Caret) -> Result<(), Error> {
-        Terminal::print("\r\n")?;
-
-        Ok(())
-    }
-
     fn clear_screen(caret: &mut Caret, size: Size) -> Result<(), Error> {
         let current_line = caret.location.y + 1;
         Terminal::move_caret_to(Position {
             x: 0,
             y: current_line,
         })?;
-        Terminal::clear_down()?;
+        Terminal::clear_screen()?;
         let height = size.height;
+
         for current_line in caret.location.y + 1..height {
             Terminal::print("~")?;
             if current_line < height - 1 {
                 Terminal::print("\r\n")?;
             }
         }
+
         Ok(())
     }
 

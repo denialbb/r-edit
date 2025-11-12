@@ -4,7 +4,7 @@ mod terminal;
 
 use caret::{Caret, Direction};
 use crossterm::event::KeyCode::{
-    Backspace, Char, Down, Enter, Left, Right, Up,
+    Backspace, Char, Down, End, Enter, Home, Left, PageDown, PageUp, Right, Up,
 };
 use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::debug;
@@ -46,6 +46,7 @@ impl Editor {
         self.welcome_message()?;
         read()?;
         Terminal::clear_screen()?;
+        self.draw_rows();
         loop {
             self.refresh_screen()?;
             if self.should_quit {
@@ -103,6 +104,18 @@ impl Editor {
                 Down => {
                     self.caret.shift(Direction::Down);
                 }
+                Home => {
+                    self.caret.go_start_of_line();
+                }
+                End => {
+                    self.caret.go_end_of_line();
+                }
+                PageUp => {
+                    self.caret.page_up();
+                }
+                PageDown => {
+                    self.caret.page_down();
+                }
                 _ => info!("Unhandled key event: {:?}", code),
             }
         }
@@ -116,7 +129,7 @@ impl Editor {
             self.goodbye_message()?;
             sleep(Duration::from_millis(1000));
         } else {
-            self.draw_rows()?;
+            // self.draw_rows()?;
             Terminal::move_caret_to(self.caret.location.into());
         }
         Terminal::show_caret()?;

@@ -1,6 +1,5 @@
 use crate::editor::terminal::Size;
 use crate::editor::terminal::{Location, Terminal};
-use std::io::Error;
 
 #[derive(Debug, Copy, Clone)]
 pub struct Caret {
@@ -54,5 +53,35 @@ impl Caret {
             }
         }
         Terminal::move_caret_to(self.location.into()).unwrap();
+    }
+
+    pub fn move_to(&mut self, location: Location) {
+        self.location = location;
+        Terminal::move_caret_to(self.location.into()).unwrap();
+    }
+
+    pub fn go_start_of_line(&mut self) {
+        self.move_to(Location {
+            x: 0,
+            y: self.location.y,
+        });
+    }
+
+    pub fn go_end_of_line(&mut self) {
+        self.move_to(Location {
+            x: self.size.width - 1,
+            y: self.location.y,
+        });
+    }
+
+    pub fn page_up(&mut self) {
+        self.move_to(Location { x: 0, y: 0 });
+    }
+
+    pub fn page_down(&mut self) {
+        self.move_to(Location {
+            x: 0,
+            y: self.size.height - 1,
+        });
     }
 }

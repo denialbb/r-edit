@@ -40,12 +40,9 @@ impl Editor {
 
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
-        View::welcome_message(&mut self.caret)?;
-        read()?;
-        Terminal::clear_screen()?;
-        View::draw_rows(&mut self.caret)?;
+        let mut view = View::new();
         loop {
-            View::render(self)?;
+            View::render(&mut view, self)?;
             if self.should_quit {
                 info!("Quitting editor");
                 break;

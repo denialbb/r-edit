@@ -4,6 +4,7 @@ use crate::editor::Size;
 use crate::editor::Terminal;
 use crate::editor::debug;
 use crate::editor::info;
+use crate::editor::read;
 use crate::editor::terminal::Location;
 use crate::editor::terminal::Position;
 use std::io::Error;
@@ -12,15 +13,26 @@ use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub struct View {}
+pub struct View {
+    is_new_buffer: bool,
+}
 
 impl View {
-    pub fn default() -> Self {
-        Self {}
+    pub fn new() -> View {
+        View {
+            is_new_buffer: true,
+        }
     }
-
-    pub fn render(editor: &mut Editor) -> Result<(), Error> {
-        Self::draw_rows(&mut editor.caret)?;
+    /// Render the current state of the editor, called in the main loop
+    pub fn render(self: &mut Self, editor: &mut Editor) -> Result<(), Error> {
+        debug!("Rendering editor");
+        if self.is_new_buffer {
+            Self::welcome_message(&mut editor.caret)?;
+            read()?;
+            self.is_new_buffer = false;
+            let size = Terminal::size()?;
+            Self::clear_screen(&mut editor.caret, size)?;
+        }
         Self::refresh_screen(editor)?;
         Ok(())
     }
@@ -33,6 +45,7 @@ impl View {
             Self::goodbye_message(&mut editor.caret)?;
             sleep(Duration::from_millis(1000));
         } else {
+            Self::draw_rows(&mut editor.caret)?;
             Terminal::move_caret_to(editor.caret.location.into())?;
         }
         Terminal::show_caret()?;
@@ -44,19 +57,26 @@ impl View {
         let Size { height, width } = Terminal::size()?;
         caret.size = Size { height, width };
 
+        // Self::clear_screen(caret, height, width)?;
         Terminal::print("\r\n")?;
-        if caret.location.x == 0 {
-            if caret.location.y == 0 {
-                Terminal::clear_down()?;
-                for current_line in caret.location.y + 1..height {
-                    Terminal::print("~")?;
-                    if current_line < height - 1 {
-                        Terminal::print("\r\n")?;
-                    }
-                }
+
+        Ok(())
+    }
+
+    fn clear_screen(caret: &mut Caret, size: Size) -> Result<(), Error> {
+        let current_line = caret.location.y + 1;
+        Terminal::move_caret_to(Position {
+            x: 0,
+            y: current_line,
+        })?;
+        Terminal::clear_down()?;
+        let height = size.height;
+        for current_line in caret.location.y + 1..height {
+            Terminal::print("~")?;
+            if current_line < height - 1 {
+                Terminal::print("\r\n")?;
             }
         }
-
         Ok(())
     }
 

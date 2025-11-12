@@ -94,13 +94,18 @@ impl View {
         let size = Terminal::size()?;
         let lines: &Vec<String> = &buffer.lines;
 
-        Self::clear_screen(caret, size)?;
+        // Self::clear_screen(caret, size)?;
+        Terminal::clear_screen()?;
         Terminal::move_caret_to(Position { x: 0, y: 0 })?;
 
         for line in lines {
             debug!("Line: {}", line);
             Terminal::print(line.as_str())?;
             Terminal::print("\r\n")?;
+        }
+
+        if lines.len() < size.height {
+            Self::filling_empty_lines(lines.len(), size)?;
         }
 
         Terminal::move_caret_to(caret.location.into())?;
@@ -113,16 +118,13 @@ impl View {
         Ok(())
     }
 
-    fn clear_screen(caret: &mut Caret, size: Size) -> Result<(), Error> {
-        let current_line = caret.location.y + 1;
-        Terminal::move_caret_to(Position {
-            x: 0,
-            y: current_line,
-        })?;
-        Terminal::clear_screen()?;
+    fn filling_empty_lines(
+        current_line: usize,
+        size: Size,
+    ) -> Result<(), Error> {
         let height = size.height;
 
-        for current_line in caret.location.y + 1..height {
+        for line in current_line + 1..height {
             Terminal::print("~")?;
             if current_line < height - 1 {
                 Terminal::print("\r\n")?;

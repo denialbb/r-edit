@@ -24,6 +24,7 @@ pub struct Editor {
     view: View,
     // buffers: Vec<&Buffer>,
     current_buffer: Buffer,
+    filename: String,
 }
 
 impl Editor {
@@ -34,6 +35,7 @@ impl Editor {
             // buffers: Vec::new(),
             current_buffer: Buffer::default(),
             view: View::default(),
+            filename: String::from("test/test.txt"),
         }
     }
 
@@ -86,7 +88,12 @@ impl Editor {
             match code {
                 Char('q') if *modifiers == KeyModifiers::CONTROL => {
                     self.should_quit = true;
-                    info!("Ctrl-Q pressed, setting should_quit to true");
+                    info!("Ctrl-Q pressed, quitting");
+                }
+                Char('s') if *modifiers == KeyModifiers::CONTROL => {
+                    self.should_quit = true;
+                    info!("Ctrl-S pressed, quitting and saving buffer");
+                    self.current_buffer.write_file(&self.filename);
                 }
                 Char(c) => {
                     Buffer::insert(

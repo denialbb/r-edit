@@ -46,6 +46,7 @@ impl Buffer {
         let mut file = File::create(path).unwrap();
         for line in &self.lines {
             file.write_all(line.as_bytes()).unwrap();
+            file.write_all(b"\n").unwrap();
         }
     }
 

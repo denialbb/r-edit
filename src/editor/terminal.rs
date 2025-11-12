@@ -3,7 +3,9 @@ use crossterm::Command;
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::queue;
 use crossterm::style::Print;
-use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
+use crossterm::terminal::{
+    Clear, ClearType, disable_raw_mode, enable_raw_mode, size,
+};
 use std::fmt;
 use std::io::{Error, Write, stdout};
 
@@ -129,7 +131,7 @@ impl Terminal {
         Ok(Size { height, width })
     }
 
-    pub fn print<T: Display>(string: T) -> Result<(), Error> {
+    pub fn print(string: &str) -> Result<(), Error> {
         Self::queue_command(Print(string))?;
         Ok(())
     }

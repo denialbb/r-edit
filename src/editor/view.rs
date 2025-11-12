@@ -30,8 +30,10 @@ impl View {
             Self::welcome_message(&mut editor.caret)?;
             read()?;
             self.is_new_buffer = false;
+            Self::set_size(&mut editor.caret)?;
             let size = Terminal::size()?;
             Self::clear_screen(&mut editor.caret, size)?;
+            Self::draw_buffer(&mut editor.caret)?;
         }
         Self::refresh_screen(editor)?;
         Ok(())
@@ -45,18 +47,33 @@ impl View {
             Self::goodbye_message(&mut editor.caret)?;
             sleep(Duration::from_millis(1000));
         } else {
-            Self::draw_rows(&mut editor.caret)?;
+            Self::set_size(&mut editor.caret)?;
             Terminal::move_caret_to(editor.caret.location.into())?;
+            // Self::draw_rows(&mut editor.caret)?;
         }
         Terminal::show_caret()?;
         Terminal::execute()?;
         Ok(())
     }
 
-    pub fn draw_rows(caret: &mut Caret) -> Result<(), Error> {
-        let Size { height, width } = Terminal::size()?;
-        caret.size = Size { height, width };
+    pub fn draw_buffer(caret: &mut Caret) -> Result<(), Error> {
+        caret.location = Location { x: 0, y: 0 };
+        Terminal::move_caret_to(caret.location.into())?;
+        let slice: &str = "Hello World!";
+        Terminal::print(slice)?;
+        caret.location = Location {
+            x: slice.len(),
+            y: 0,
+        };
+        Ok(())
+    }
 
+    fn set_size(caret: &mut Caret) -> Result<(), Error> {
+        let size = Terminal::size()?;
+        caret.size = size;
+        Ok(())
+    }
+    pub fn draw_rows(caret: &mut Caret) -> Result<(), Error> {
         // Self::clear_screen(caret, height, width)?;
         Terminal::print("\r\n")?;
 

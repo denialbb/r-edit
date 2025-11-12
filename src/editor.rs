@@ -1,6 +1,7 @@
-mod caret;
+pub mod caret;
 pub mod logger;
-mod terminal;
+pub mod terminal;
+pub mod view;
 
 use caret::{Caret, Direction};
 use crossterm::event::KeyCode::{
@@ -14,6 +15,7 @@ use std::io::Error;
 use std::thread::sleep;
 use std::time::Duration;
 use terminal::{Location, Position, Size, Terminal};
+use view::View;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -46,7 +48,7 @@ impl Editor {
         self.welcome_message()?;
         read()?;
         Terminal::clear_screen()?;
-        self.draw_rows();
+        View::draw_rows(&mut self.caret)?;
         loop {
             self.refresh_screen()?;
             if self.should_quit {
@@ -83,7 +85,7 @@ impl Editor {
                     Terminal::print("\r\n").unwrap();
                     self.caret.shift(Direction::Down);
                     self.caret.location.x = 0;
-                    let _ = Terminal::clear_current_line();
+                    Terminal::clear_current_line().unwrap();
                     info!("Printed newline");
                 }
                 Backspace => {
@@ -129,31 +131,10 @@ impl Editor {
             self.goodbye_message()?;
             sleep(Duration::from_millis(1000));
         } else {
-            // self.draw_rows()?;
-            Terminal::move_caret_to(self.caret.location.into());
+            Terminal::move_caret_to(self.caret.location.into())?;
         }
         Terminal::show_caret()?;
         Terminal::execute()?;
-        Ok(())
-    }
-
-    fn draw_rows(&mut self) -> Result<(), Error> {
-        let Size { height, width } = Terminal::size()?;
-        self.caret.size = Size { height, width };
-
-        Terminal::print("\r\n")?;
-        if self.caret.location.x == 0 {
-            if self.caret.location.y == 0 {
-                Terminal::clear_down()?;
-                for current_line in self.caret.location.y + 1..height {
-                    Terminal::print("~")?;
-                    if current_line < height - 1 {
-                        Terminal::print("\r\n")?;
-                    }
-                }
-            }
-        }
-
         Ok(())
     }
 

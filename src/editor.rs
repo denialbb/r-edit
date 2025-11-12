@@ -11,13 +11,8 @@ use crossterm::event::{Event, Event::Key, KeyEvent, KeyModifiers, read};
 use log::debug;
 use log::info;
 use std::io::Error;
-
-use std::thread::sleep;
-use std::time::Duration;
-use terminal::{Location, Position, Size, Terminal};
+use terminal::{Size, Terminal};
 use view::View;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Editor {
     should_quit: bool,
@@ -45,12 +40,12 @@ impl Editor {
 
     pub fn repl(&mut self) -> Result<(), Error> {
         info!("Starting read-evaluate-print loop");
-        self.welcome_message()?;
+        View::welcome_message(&mut self.caret)?;
         read()?;
         Terminal::clear_screen()?;
         View::draw_rows(&mut self.caret)?;
         loop {
-            self.refresh_screen()?;
+            View::render(self)?;
             if self.should_quit {
                 info!("Quitting editor");
                 break;
@@ -121,83 +116,5 @@ impl Editor {
                 _ => info!("Unhandled key event: {:?}", code),
             }
         }
-    }
-
-    fn refresh_screen(&mut self) -> Result<(), Error> {
-        info!("Refreshing screen");
-        debug!("Caret location: {}", self.caret.location);
-        Terminal::hide_caret()?;
-        if self.should_quit {
-            self.goodbye_message()?;
-            sleep(Duration::from_millis(1000));
-        } else {
-            Terminal::move_caret_to(self.caret.location.into())?;
-        }
-        Terminal::show_caret()?;
-        Terminal::execute()?;
-        Ok(())
-    }
-
-    fn welcome_message(&mut self) -> Result<(), Error> {
-        info!("Displaying welcome message");
-        let Size { width, height } = Terminal::size()?;
-
-        Terminal::hide_caret()?;
-        Terminal::clear_screen()?;
-
-        let message = format!("R-EDIT -- v{}", VERSION);
-        let row = height / 3;
-        let column = width / 2;
-        let msg_len = message.len() as usize;
-
-        match (column).checked_sub(msg_len / 2) {
-            Some(col) => {
-                Terminal::move_caret_to(Position { x: col, y: row })?;
-            }
-            None => {
-                info!("Underflow");
-                Terminal::move_caret_to(Position { x: 0, y: row })?;
-            }
-        }
-
-        Terminal::print(&message)?;
-        Terminal::print("\r\n\r\n")?;
-
-        Terminal::move_caret_to(Position { x: 0, y: 0 })?;
-        self.caret.location = Location { x: 0, y: 0 };
-        Terminal::show_caret()?;
-        Terminal::execute()?;
-        Ok(())
-    }
-
-    fn goodbye_message(&mut self) -> Result<(), Error> {
-        info!("Displaying message");
-        let Size { width, height } = Terminal::size()?;
-        Terminal::hide_caret()?;
-        Terminal::clear_screen()?;
-
-        let mut message = String::from("Goodbye.");
-        let row = height / 3;
-        let column = width / 2;
-        let msg_len = message.len();
-
-        match (column).checked_sub(msg_len / 2) {
-            Some(col) => {
-                Terminal::move_caret_to(Position { x: col, y: row })?;
-            }
-            None => {
-                info!("Underflow");
-                Terminal::move_caret_to(Position { x: 0, y: row })?;
-            }
-        }
-        message.truncate(width as usize);
-        Terminal::print(&message)?;
-        Terminal::print("\r\n\r\n")?;
-
-        Terminal::move_caret_to(Position { x: 0, y: 0 })?;
-        self.caret.location = Location { x: 0, y: 0 };
-        Terminal::show_caret()?;
-        Terminal::execute()?;
-        Ok(())
     }
 }

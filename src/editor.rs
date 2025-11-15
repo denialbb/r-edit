@@ -28,13 +28,34 @@ pub struct Editor {
     filename: String,
 }
 
+impl Drop for Editor {
+    fn drop(&mut self) {
+        debug!("Dropping Editor!");
+        match Terminal::terminate() {
+            Ok(_) => {}
+            Err(e) => {
+                debug!("Error terminating terminal: {}", e);
+            }
+        }
+    }
+}
+
 impl Editor {
-    pub fn default(filename: String) -> Self {
+    pub fn default() -> Self {
         Self {
             should_quit: false,
             caret: caret::Caret::default(),
             // TODO implement multiple buffers
             // buffers: Vec::new(),
+            current_buffer: Buffer::default(),
+            view: View::default(),
+            filename: String::from("/test/test.txt"),
+        }
+    }
+    pub fn new(filename: String) -> Self {
+        Self {
+            should_quit: false,
+            caret: caret::Caret::default(),
             current_buffer: Buffer::default(),
             view: View::default(),
             filename: filename,

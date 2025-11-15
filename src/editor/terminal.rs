@@ -1,12 +1,15 @@
 use core::fmt::Display;
 use crossterm::Command;
 use crossterm::cursor::{Hide, MoveTo, Show};
+use crossterm::execute;
 use crossterm::queue;
 use crossterm::style::Print;
 use crossterm::terminal::{
-    Clear, ClearType, disable_raw_mode, enable_raw_mode, size,
+    Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen,
+    disable_raw_mode, enable_raw_mode, size,
 };
 use std::fmt;
+use std::io;
 use std::io::{Error, Write, stdout};
 
 #[derive(Debug, Copy, Clone)]
@@ -54,8 +57,29 @@ impl Into<Location> for Position {
 
 pub struct Terminal;
 
+impl Drop for Terminal {
+    fn drop(&mut self) {
+        match Terminal::terminate() {
+            Ok(_) => {}
+            Err(e) => {
+                println!("{}", e);
+            }
+        }
+    }
+}
+
 impl Terminal {
+    pub fn default() -> Self {
+        Self {}
+    }
+    pub fn new() -> Self {
+        Self::initialize();
+        Self {}
+    }
     pub fn initialize() -> Result<(), Error> {
+        Self::set_up_panic_hook();
+        execute!(io::stdout(), EnterAlternateScreen)?;
+
         enable_raw_mode()?;
         Self::clear_screen()?;
         Self::move_caret_to(Position { x: 0, y: 0 })?;
@@ -63,9 +87,23 @@ impl Terminal {
         Ok(())
     }
 
+    fn set_up_panic_hook() {
+        let current_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            match Terminal::terminate() {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
+            current_hook(panic_info);
+        }));
+    }
+
     pub fn terminate() -> Result<(), Error> {
         Self::execute()?;
         disable_raw_mode()?;
+        execute!(io::stdout(), LeaveAlternateScreen);
         Ok(())
     }
 

@@ -6,6 +6,7 @@ pub mod view;
 
 use buffer::Buffer;
 use caret::{Caret, Direction};
+use crossterm::event::Event::Resize;
 use crossterm::event::KeyCode::{
     Backspace, Char, Down, End, Enter, Home, Left, PageDown, PageUp, Right, Up,
 };
@@ -82,6 +83,9 @@ impl Editor {
 
     fn evaluate_event(&mut self, event: &Event) {
         info!("Evaluating event: {:?}", event);
+        if let Resize(x, y) = event {
+            self.view.needs_redraw;
+        }
         if let Key(KeyEvent {
             code, modifiers, ..
         }) = event

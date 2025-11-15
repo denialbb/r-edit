@@ -49,7 +49,7 @@ impl Editor {
             // buffers: Vec::new(),
             current_buffer: Buffer::default(),
             view: View::default(),
-            filename: String::from("/test/test.txt"),
+            filename: String::from("./test/test.txt"),
         }
     }
     pub fn new(filename: String) -> Self {
@@ -66,8 +66,23 @@ impl Editor {
     pub fn run(&mut self) {
         info!("--------------------------------------------");
         info!("Editor is running");
-        Terminal::initialize().unwrap();
-        self.current_buffer = Buffer::read_file(&self.filename);
+        match Terminal::initialize() {
+            Ok(_) => {}
+            Err(e) => {
+                debug!("Error initializing terminal: {e}");
+                panic!();
+            }
+        }
+
+        match Buffer::read_file(&self.filename) {
+            Ok(buffer) => self.current_buffer = buffer,
+            Err(e) => {
+                debug!("Error opening file: {e}");
+                // TODO(dan): for now panic is fine, in the future maybe
+                // open some kind of dashboard
+                panic!();
+            }
+        }
         // self.buffers.push(self.current_buffer);
 
         self.view = View::new(Terminal::size().unwrap());

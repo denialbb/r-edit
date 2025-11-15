@@ -1,4 +1,5 @@
 use super::terminal::Location; // Added this line
+use std::io::Error;
 use std::io::Write;
 use std::{
     fs::File,
@@ -29,17 +30,21 @@ impl Buffer {
         self.lines.get(index).cloned()
     }
 
-    pub fn read_file(path: &str) -> Buffer {
+    pub fn read_file(path: &str) -> Result<Buffer, Error> {
         let mut buffer = Buffer::new();
-        let file = File::open(path);
-        let reader = BufReader::new(file.unwrap());
 
-        for line in reader.lines() {
-            let line = line.unwrap();
-            buffer.push(line);
+        match File::open(path) {
+            Ok(file) => {
+                let reader = BufReader::new(file);
+                for line in reader.lines() {
+                    let line = line.unwrap();
+                    buffer.push(line);
+                }
+            }
+            Err(e) => return Err(e),
         }
 
-        buffer
+        Ok(buffer)
     }
 
     pub fn write_file(&self, path: &str) {

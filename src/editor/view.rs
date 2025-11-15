@@ -14,6 +14,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct View {
     is_new_buffer: bool,
+    size: Size,
     pub needs_redraw: bool,
 }
 
@@ -21,12 +22,17 @@ impl View {
     pub fn default() -> View {
         View {
             is_new_buffer: true,
+            size: Size {
+                height: 40,
+                width: 80,
+            },
             needs_redraw: false,
         }
     }
-    pub fn new() -> View {
+    pub fn new(size: Size) -> View {
         View {
             is_new_buffer: true,
+            size: size,
             needs_redraw: false,
         }
     }
@@ -75,7 +81,6 @@ impl View {
         debug!("Caret location: {}", caret.location);
 
         Terminal::hide_caret()?;
-        Self::set_size(caret)?;
 
         let current_line = caret.location.y;
         Terminal::move_caret_to(Position {
@@ -126,7 +131,12 @@ impl View {
         Ok(())
     }
 
-    fn set_size(caret: &mut Caret) -> Result<(), Error> {
+    pub fn resize(&mut self, to: Size) {
+        self.size = to;
+        self.needs_redraw = true;
+    }
+
+    pub fn set_size(caret: &mut Caret) -> Result<(), Error> {
         let size = Terminal::size()?;
         caret.size = size;
         Ok(())

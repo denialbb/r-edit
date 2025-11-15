@@ -53,6 +53,7 @@ impl Editor {
         }
     }
     pub fn new(filename: String) -> Self {
+        Self::set_up_panic_hook();
         Self {
             should_quit: false,
             caret: caret::Caret::default(),
@@ -69,7 +70,7 @@ impl Editor {
         self.current_buffer = Buffer::read_file(&self.filename);
         // self.buffers.push(self.current_buffer);
 
-        self.view = View::new();
+        self.view = View::new(Terminal::size().unwrap());
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
@@ -81,21 +82,36 @@ impl Editor {
         info!("Starting read-evaluate-print loop");
 
         loop {
-            View::render(
+            match View::render(
                 &mut self.view,
                 &mut self.caret,
                 &mut self.current_buffer,
-            )?;
+            ) {
+                Ok(_) => {}
+                Err(e) => {
+                    debug!("Error rendering: {e}");
+                }
+            }
 
             if self.should_quit {
                 info!("Quitting editor");
-                View::goodbye_message(&mut self.caret)?;
-                sleep(Duration::from_millis(1000));
+                match View::goodbye_message(&mut self.caret) {
+                    Ok(_) => {
+                        sleep(Duration::from_millis(1000));
+                    }
+                    Err(e) => {
+                        debug!("Error printing goodbye message: {e}");
+                    }
+                };
                 break;
             }
 
-            let event = read()?;
-            self.evaluate_event(&event);
+            match read() {
+                Ok(event) => self.evaluate_event(&event),
+                Err(e) => {
+                    debug!("Error handling event: {}", e);
+                }
+            }
         }
 
         info!("Exiting REPL loop");
@@ -105,7 +121,14 @@ impl Editor {
     fn evaluate_event(&mut self, event: &Event) {
         info!("Evaluating event: {:?}", event);
         if let Resize(x, y) = event {
-            self.view.needs_redraw;
+            self.view.resize(Size {
+                height: *y as usize,
+                width: *x as usize,
+            });
+            self.caret.size = Size {
+                height: *y as usize,
+                width: *x as usize,
+            };
         }
         if let Key(KeyEvent {
             code, modifiers, ..
@@ -180,5 +203,18 @@ impl Editor {
                 _ => info!("Unhandled key event: {:?}", code),
             }
         }
+    }
+
+    fn set_up_panic_hook() {
+        let current_hook = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            match Terminal::terminate() {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("{}", e);
+                }
+            }
+            current_hook(panic_info);
+        }));
     }
 }

@@ -77,9 +77,7 @@ impl Terminal {
         Self {}
     }
     pub fn initialize() -> Result<(), Error> {
-        Self::set_up_panic_hook();
-        execute!(io::stdout(), EnterAlternateScreen)?;
-
+        Self::enter_alternate_screen();
         enable_raw_mode()?;
         Self::clear_screen()?;
         Self::move_caret_to(Position { x: 0, y: 0 })?;
@@ -87,23 +85,10 @@ impl Terminal {
         Ok(())
     }
 
-    fn set_up_panic_hook() {
-        let current_hook = std::panic::take_hook();
-        std::panic::set_hook(Box::new(move |panic_info| {
-            match Terminal::terminate() {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("{}", e);
-                }
-            }
-            current_hook(panic_info);
-        }));
-    }
-
     pub fn terminate() -> Result<(), Error> {
         Self::execute()?;
         disable_raw_mode()?;
-        execute!(io::stdout(), LeaveAlternateScreen);
+        Self::enter_alternate_screen();
         Ok(())
     }
 
@@ -182,5 +167,13 @@ impl Terminal {
     pub fn execute() -> Result<(), Error> {
         stdout().flush()?;
         Ok(())
+    }
+
+    pub fn enter_alternate_screen() -> Result<(), Error> {
+        execute!(io::stdout(), EnterAlternateScreen)?;
+        Ok(())
+    }
+    pub fn leave_altenate_screen() {
+        execute!(io::stdout(), LeaveAlternateScreen);
     }
 }

@@ -104,6 +104,7 @@ impl Editor {
                     );
 
                     self.caret.shift(Direction::Right);
+                    self.view.needs_redraw = true;
                 }
                 Enter => {
                     Buffer::insert(
@@ -116,6 +117,7 @@ impl Editor {
                         .unwrap();
                     self.caret.shift(Direction::Down);
                     self.caret.location.x = 0;
+                    self.view.needs_redraw = true;
                 }
                 Backspace => {
                     Buffer::backspace(
@@ -124,6 +126,7 @@ impl Editor {
                     );
 
                     self.caret.shift(Direction::Left);
+                    self.view.needs_redraw = true;
                 }
                 Left => {
                     self.caret.shift(Direction::Left);

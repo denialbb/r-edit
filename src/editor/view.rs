@@ -14,17 +14,20 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct View {
     is_new_buffer: bool,
+    pub needs_redraw: bool,
 }
 
 impl View {
     pub fn default() -> View {
         View {
             is_new_buffer: true,
+            needs_redraw: false,
         }
     }
     pub fn new() -> View {
         View {
             is_new_buffer: true,
+            needs_redraw: false,
         }
     }
 
@@ -46,7 +49,20 @@ impl View {
             Self::draw_buffer(&current_buffer, caret)?;
         }
 
-        view.refresh_screen(caret, current_buffer)?;
+        view.draw_caret(caret)?;
+
+        if view.needs_redraw {
+            view.refresh_screen(caret, current_buffer)?;
+            view.needs_redraw = false;
+        }
+
+        Terminal::execute()?;
+
+        Ok(())
+    }
+
+    pub fn draw_caret(self: &mut Self, caret: &mut Caret) -> Result<(), Error> {
+        Terminal::move_caret_to(caret.location.into())?;
         Ok(())
     }
 
@@ -81,7 +97,6 @@ impl View {
 
         Terminal::move_caret_to(caret.location.into())?;
         Terminal::show_caret()?;
-        Terminal::execute()?;
         Ok(())
     }
 
@@ -94,7 +109,6 @@ impl View {
         let size = Terminal::size()?;
         let lines: &Vec<String> = &buffer.lines;
 
-        // Self::clear_screen(caret, size)?;
         Terminal::clear_screen()?;
         Terminal::move_caret_to(Position { x: 0, y: 0 })?;
 
@@ -126,8 +140,8 @@ impl View {
 
         for line in current_line + 1..height {
             Terminal::print("~")?;
-            if current_line < height - 1 {
-                Terminal::print("\r\n")?;
+            if line < height - 1 {
+                Terminal::move_caret_to(Position { x: 0, y: line })?;
             }
         }
 

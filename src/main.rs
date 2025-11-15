@@ -18,7 +18,9 @@ fn main() {
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(LevelFilter::Debug);
 
+    // if we don't get any argument we default to the test file
     let mut filename: String = String::from("test/test.txt");
+    // collect depletes the iterator
     let args: Vec<String> = std::env::args().collect();
     if let Some(first_arg) = args.get(1) {
         info!("Argument provided: {first_arg} (filename)");

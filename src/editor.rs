@@ -28,14 +28,15 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn default() -> Self {
+    pub fn default(filename: String) -> Self {
         Self {
             should_quit: false,
             caret: caret::Caret::default(),
+            // TODO implement multiple buffers
             // buffers: Vec::new(),
             current_buffer: Buffer::default(),
             view: View::default(),
-            filename: String::from("test/test.txt"),
+            filename: filename,
         }
     }
 
@@ -43,7 +44,7 @@ impl Editor {
         info!("--------------------------------------------");
         info!("Editor is running");
         Terminal::initialize().unwrap();
-        self.current_buffer = Buffer::read_file("test/test.txt");
+        self.current_buffer = Buffer::read_file(&self.filename);
         // self.buffers.push(self.current_buffer);
 
         self.view = View::new();

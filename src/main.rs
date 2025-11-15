@@ -2,6 +2,8 @@
 mod editor;
 use editor::Editor;
 use editor::logger::{Config, CustomLogger};
+use log::debug;
+use log::info;
 use log::{self, LevelFilter};
 
 fn main() {
@@ -16,6 +18,15 @@ fn main() {
     log::set_boxed_logger(Box::new(logger)).unwrap();
     log::set_max_level(LevelFilter::Debug);
 
-    let mut editor = Editor::default();
+    let mut filename: String = String::from("test/test.txt");
+    let args: Vec<String> = std::env::args().collect();
+    if let Some(first_arg) = args.get(1) {
+        info!("Argument provided: {first_arg} (filename)");
+        filename = first_arg.clone();
+    } else {
+        info!("No argument provided");
+    }
+
+    let mut editor = Editor::default(filename);
     editor.run();
 }
